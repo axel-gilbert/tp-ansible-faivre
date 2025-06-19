@@ -97,6 +97,37 @@ The playbook will:
 - Configure all services
 - Start the monitoring stack
 
+## 🌐 Available Services & URLs
+
+After successful deployment, the following services will be accessible:
+
+### 🔍 Monitoring Dashboards
+| Service | URL | Port | Purpose | Default Credentials |
+|---------|-----|------|---------|-------------------|
+| **Grafana** | `http://your_server_ip:3000` | 3000 | Main monitoring dashboard | `admin` / `admin` |
+| **Prometheus** | `http://your_server_ip:9090` | 9090 | Metrics database & queries | N/A |
+| **Nginx** | `http://your_server_ip:8000` | 8000 | Sample web application | N/A |
+
+### 📊 Metrics Endpoints
+| Service | URL | Port | Purpose |
+|---------|-----|------|---------|
+| **Node Exporter** | `http://your_server_ip:9100/metrics` | 9100 | System metrics |
+| **Nginx Exporter** | `http://your_server_ip:9113/metrics` | 9113 | Nginx metrics |
+| **Prometheus** | `http://your_server_ip:9090/metrics` | 9090 | Prometheus self-metrics |
+
+### 📝 Log Aggregation
+| Service | URL | Port | Purpose |
+|---------|-----|------|---------|
+| **Loki** | `http://your_server_ip:3100` | 3100 | Log aggregation |
+| **Promtail** | `http://your_server_ip:9080/metrics` | 9080 | Log collection metrics |
+
+### 🔧 Health Checks
+| Service | URL | Port | Purpose |
+|---------|-----|------|---------|
+| **Grafana Health** | `http://your_server_ip:3000/api/health` | 3000 | Grafana status |
+| **Prometheus Health** | `http://your_server_ip:9090/-/healthy` | 9090 | Prometheus status |
+| **Nginx Health** | `http://your_server_ip:8000/health` | 8000 | Nginx status |
+
 ## 📊 Monitoring Features
 
 ### Metrics Collection
@@ -125,17 +156,6 @@ The playbook will:
 - Response time thresholds
 - System resource alerts
 - Service availability monitoring
-
-## 🔐 Access Services
-
-After deployment, the following services will be available:
-
-| Service     | Port | Default Credentials |
-|-------------|------|-------------------|
-| Grafana     | 3000 | admin/admin      |
-| Prometheus  | 9090 | N/A              |
-| Nginx       | 8000 | N/A              |
-| Node Exporter| 9100 | N/A              |
 
 ## 📈 Useful Queries
 
@@ -183,14 +203,41 @@ docker-compose pull
 docker-compose up -d
 ```
 
+### Troubleshooting
+```bash
+# Check service status
+docker-compose ps
+
+# View all logs
+docker-compose logs
+
+# Check specific service logs
+docker-compose logs -f grafana
+docker-compose logs -f prometheus
+docker-compose logs -f nginx
+
+# Restart entire stack
+docker-compose down
+docker-compose up -d
+```
+
 ## 📁 Project Structure
 ```
 .
 ├── ansible/                    # Ansible deployment configuration
+│   ├── playbook.yml           # Main deployment playbook
+│   └── inventory.yml          # Server inventory
 ├── docker-compose.yml         # Container orchestration
 ├── nginx/                     # Nginx configuration and static files
+│   ├── nginx.conf            # Nginx configuration
+│   └── html/                 # Static web content
 ├── prometheus/                # Prometheus configuration and rules
+│   ├── prometheus.yml        # Prometheus configuration
+│   └── rules/                # Alerting rules
 ├── grafana/                   # Grafana dashboards and provisioning
+│   ├── provisioning/         # Auto-provisioning configs
+│   └── dashboards/           # Dashboard definitions
 ├── loki/                     # Loki configuration
-└── promtail/                 # Promtail configuration
+├── promtail/                 # Promtail configuration
+└── .gitignore               # Git ignore rules
 ```

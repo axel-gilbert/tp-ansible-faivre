@@ -13,6 +13,7 @@
 # Données Grafana
 grafana/data/
 grafana/plugins/
+grafana/data/grafana.db
 
 # Données Prometheus
 prometheus/data/

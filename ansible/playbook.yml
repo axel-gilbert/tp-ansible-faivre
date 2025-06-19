@@ -58,6 +58,9 @@
         groups: docker
         append: yes
 
+    - name: Appliquer les changements de groupe
+      meta: reset_connection
+
     - name: Création du répertoire du projet
       file:
         path: "{{ project_root }}"
@@ -76,15 +79,32 @@
       with_items:
         - nginx
         - nginx/html
+        - nginx/logs
         - prometheus
         - prometheus/rules
+        - prometheus/data
         - grafana
         - grafana/provisioning
         - grafana/provisioning/datasources
         - grafana/provisioning/dashboards
         - grafana/dashboards
+        - grafana/data
         - loki
+        - loki/data
         - promtail
+
+    - name: Mise à jour des permissions des répertoires de données
+      file:
+        path: "{{ project_root }}/{{ item }}"
+        mode: '0777'
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      with_items:
+        - prometheus/data
+        - grafana/data
+        - loki/data
+        - nginx/logs
 
     - name: Copie des fichiers de configuration
       copy:
@@ -117,9 +137,11 @@
         name: python3-pip
         state: present
 
-    - name: Installation du module Docker pour Python
+    - name: Installation des dépendances Python pour Docker
       pip:
-        name: docker
+        name:
+          - docker
+          - docker-compose
         state: present
 
     - name: Démarrage de la stack avec Docker Compose
@@ -129,6 +151,19 @@
         state: present
       become: yes
       become_user: "{{ ansible_user }}"
+
+    - name: Attente que les services soient disponibles
+      uri:
+        url: "http://localhost:{{ item.port }}{{ item.path }}"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 60
+      delay: 1
+      with_items:
+        - { port: 3000, path: "/api/health" }  # Grafana
+        - { port: 9090, path: "/-/healthy" }   # Prometheus
+        - { port: 8000, path: "/health" }      # Nginx
 
   roles:
     - docker
