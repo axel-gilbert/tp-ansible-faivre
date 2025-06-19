@@ -1,0 +1,135 @@
+---
+- name: Déploiement de la stack de monitoring
+  hosts: monitoring
+  become: true
+  
+  vars:
+    project_name: monitoring-stack
+    project_root: "/opt/{{ project_name }}"
+    docker_packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+
+  tasks:
+    - name: Mise à jour du cache apt
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Installation des dépendances
+      apt:
+        name: "{{ docker_packages[0:5] }}"
+        state: present
+
+    - name: Ajout de la clé GPG Docker
+      apt_key:
+        url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+        state: present
+
+    - name: Ajout du repository Docker
+      apt_repository:
+        repo: "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+
+    - name: Installation de Docker
+      apt:
+        name: "{{ docker_packages[5:] }}"
+        state: present
+        update_cache: yes
+
+    - name: Démarrage et activation du service Docker
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Ajout de l'utilisateur au groupe docker
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Création du répertoire du projet
+      file:
+        path: "{{ project_root }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Création des sous-répertoires du projet
+      file:
+        path: "{{ project_root }}/{{ item }}"
+        state: directory
+        mode: '0755'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      with_items:
+        - nginx
+        - nginx/html
+        - prometheus
+        - prometheus/rules
+        - grafana
+        - grafana/provisioning
+        - grafana/provisioning/datasources
+        - grafana/provisioning/dashboards
+        - grafana/dashboards
+        - loki
+        - promtail
+
+    - name: Copie des fichiers de configuration
+      copy:
+        src: "../{{ item.src }}"
+        dest: "{{ project_root }}/{{ item.dest }}"
+        mode: '0644'
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+      with_items:
+        - { src: 'docker-compose.yml', dest: 'docker-compose.yml' }
+        - { src: 'nginx/nginx.conf', dest: 'nginx/nginx.conf' }
+        - { src: 'nginx/html/index.html', dest: 'nginx/html/index.html' }
+        - { src: 'prometheus/prometheus.yml', dest: 'prometheus/prometheus.yml' }
+        - { src: 'prometheus/rules/alerts.yml', dest: 'prometheus/rules/alerts.yml' }
+        - { src: 'grafana/provisioning/datasources/datasources.yml', dest: 'grafana/provisioning/datasources/datasources.yml' }
+        - { src: 'grafana/provisioning/dashboards/dashboards.yml', dest: 'grafana/provisioning/dashboards/dashboards.yml' }
+        - { src: 'grafana/dashboards/nginx-dashboard.json', dest: 'grafana/dashboards/nginx-dashboard.json' }
+        - { src: 'grafana/dashboards/system-dashboard.json', dest: 'grafana/dashboards/system-dashboard.json' }
+        - { src: 'loki/loki-config.yml', dest: 'loki/loki-config.yml' }
+        - { src: 'promtail/promtail-config.yml', dest: 'promtail/promtail-config.yml' }
+
+    - name: Mise à jour du docker-compose pour restart always
+      replace:
+        path: "{{ project_root }}/docker-compose.yml"
+        regexp: 'restart: unless-stopped'
+        replace: 'restart: always'
+
+    - name: Installation de pip pour le module docker-compose
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Installation du module Docker pour Python
+      pip:
+        name: docker
+        state: present
+
+    - name: Démarrage de la stack avec Docker Compose
+      docker_compose:
+        project_src: "{{ project_root }}"
+        pull: yes
+        state: present
+      become: yes
+      become_user: "{{ ansible_user }}"
+
+  roles:
+    - docker
+    - monitoring 

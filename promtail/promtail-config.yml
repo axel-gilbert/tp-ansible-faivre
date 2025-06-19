@@ -1,0 +1,72 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: nginx-access
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-access
+          __path__: /var/log/nginx/access.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<ip>[\d.]+) - (?P<user>[\w-]+) \[(?P<timestamp>[\w\s:]+)\] "(?P<method>\w+) (?P<path>[^"]*) (?P<protocol>[^"]*)" (?P<status>\d+) (?P<bytes>\d+) "(?P<referer>[^"]*)" "(?P<useragent>[^"]*)" "(?P<forwarded>[^"]*)" rt=(?P<request_time>[\d.]+) uct="(?P<upstream_connect_time>[^"]*)" uht="(?P<upstream_header_time>[^"]*)" urt="(?P<upstream_response_time>[^"]*)"'
+      - labels:
+          method:
+          status:
+          path:
+      - timestamp:
+          source: timestamp
+          format: "02/Jan/2006:15:04:05 -0700"
+      - metrics:
+          request_duration_seconds:
+            type: Histogram
+            description: "Request duration in seconds"
+            source: request_time
+            buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10]
+          requests_total:
+            type: Counter
+            description: "Total number of requests"
+            source: status
+            config:
+              action: inc
+
+  - job_name: nginx-error
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx-error
+          __path__: /var/log/nginx/error.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] (?P<pid>\d+)#(?P<tid>\d+): \*(?P<connection>\d+) (?P<message>.*)$'
+      - labels:
+          level:
+      - timestamp:
+          source: timestamp
+          format: "2006/01/02 15:04:05"
+
+  - job_name: system-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          __path__: /var/log/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}) (?P<hostname>\S+) (?P<service>\S+)\[(?P<pid>\d+)\]: (?P<message>.*)$'
+      - labels:
+          service:
+      - timestamp:
+          source: timestamp
+          format: "Jan 2 15:04:05" 

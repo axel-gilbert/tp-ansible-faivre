@@ -1,0 +1,15 @@
+# Variables globales pour le déploiement
+project_name: monitoring-stack
+project_root: "/opt/{{ project_name }}"
+
+# Docker
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# Configuration Docker
+docker_apt_key_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
+docker_apt_repository: "deb [arch={{ ansible_architecture }}] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable" 

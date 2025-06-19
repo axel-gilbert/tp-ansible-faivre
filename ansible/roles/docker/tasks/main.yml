@@ -1,0 +1,43 @@
+---
+- name: Installation des dépendances
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Ajout de la clé GPG Docker
+  apt_key:
+    url: "{{ docker_apt_key_url }}"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Ajout du repository Docker
+  apt_repository:
+    repo: "{{ docker_apt_repository }}"
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Installation de Docker
+  apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Démarrage et activation du service Docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Ajout de l'utilisateur au groupe docker
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes 

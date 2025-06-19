@@ -1,0 +1,31 @@
+---
+- name: Création du répertoire du projet
+  file:
+    path: "{{ project_root }}"
+    state: directory
+    mode: '0755'
+
+- name: Copie des fichiers du projet
+  copy:
+    src: "{{ item }}"
+    dest: "{{ project_root }}/"
+    mode: '0644'
+  with_items:
+    - docker-compose.yml
+    - nginx/
+    - prometheus/
+    - grafana/
+    - loki/
+    - promtail/
+
+- name: Mise à jour du docker-compose pour restart always
+  replace:
+    path: "{{ project_root }}/docker-compose.yml"
+    regexp: 'restart: unless-stopped'
+    replace: 'restart: always'
+
+- name: Démarrage de la stack avec Docker Compose
+  community.docker.docker_compose:
+    project_src: "{{ project_root }}"
+    pull: yes
+    state: present 
