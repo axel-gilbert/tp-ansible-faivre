@@ -130,6 +130,20 @@ After successful deployment, the following services will be accessible:
 
 ## 📊 Monitoring Features
 
+### Dashboard Previews
+
+Here are previews of the pre-configured dashboards included in this monitoring stack.
+
+#### System Monitoring Dashboard
+This dashboard provides a comprehensive overview of system-level metrics, including CPU, memory, disk, and network usage.
+
+![System Monitoring Dashboard](assets/images/image1.png)
+
+#### Nginx Monitoring Dashboard
+This dashboard focuses on Nginx performance, displaying key metrics like requests per second, response times, and error rates.
+
+![Nginx Monitoring Dashboard](assets/images/image2.png)
+
 ### Metrics Collection
 - **Nginx Metrics**
   - Requests per second
